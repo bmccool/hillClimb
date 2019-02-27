@@ -77,26 +77,39 @@ def QLearning(env, learning, discount, epsilon, min_eps, episodes):
                 Q[state_adj[0], state_adj[1], action] = reward
                 
             # Adjust Q value for current state
-            #TODO How does this work????
+            # Ultimately, all we are trying to do is update the Q value of the current state-action pair like this:
+                # part of the old reward + part of (the new reward and a little of the next optimal reward)
+                # Note: "part" refers to what part we keep of the reward based on the learning rate
+                # And "little" means we discount future rewards by some amount
+            # Note: This program doesn't necessarily follow this rule to a t, but it is close.
             # Update Q(s1, s2, a) based on the update rule:
             # Q’(s1, s2, a) = (1 — w)*Q(s1, s2, a) + w*(r+d*Q(s1’, s2’, argmax a’ Q(s1’, s2’, a’)))
+            # Another way of wrting that is:
+            # Q’(s1, s2, a) = (1 — w)*Q(s1, s2, a) + w*(r+d*Qmax(s1’, s2’, a’)))
+            # Now, let's look at just that last term...
+                # Q(s1’, s2’, argmax a’ Q(s1’, s2’, a’))
+            # So this is "the next optimal reward" and it looks like this in the code
+                # np.max(Q[state2_adj[0], state2_adj[1]]) - Q[state_adj[0],  state_adj[1],action])
+            # Which is the max of all posible actions in the next state
+                                # minus the reward of the current action in the current state.
             else:
                 delta = learning*(reward + 
                                  discount*np.max(Q[state2_adj[0], state2_adj[1]]) - 
                                                  Q[state_adj[0],  state_adj[1],action])
                 Q[state_adj[0], state_adj[1],action] += delta
                                      
-            # Update variables
+            # Accumulate reward, advance state
             tot_reward += reward
             state_adj = state2_adj
         
-        # Decay epsilon
+        # Decay epsilon - shift from "explore" to "exloit"
         if epsilon > min_eps:
             epsilon -= reduction
         
         # Track rewards
         reward_list.append(tot_reward)
         
+        # Track average reward in batches of 100
         if (i+1) % 100 == 0:
             ave_reward = np.mean(reward_list)
             ave_reward_list.append(ave_reward)
@@ -110,6 +123,11 @@ def QLearning(env, learning, discount, epsilon, min_eps, episodes):
     return ave_reward_list
 
 # Run Q-learning algorithm
+# learning = 0.2 -> Update Q roughly 20% of new input
+# discount = 0.9 -> Future rewards are only worth 90% compared to current rewards
+# epsilon = 0.8 -> Start with random actions 20% of the time
+# min_eps = 0 -> Begin decaying epsilon from the start
+# episodes = 10k -> 10k playthroughs (only last 20 are rendered)
 rewards = QLearning(env, 0.2, 0.9, 0.8, 0, 10000)
 
 # Plot Rewards
